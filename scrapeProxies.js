@@ -15,6 +15,7 @@ let proxies = [];
 
 //read in the file containing the verified proxies
 let verifiedProxies = JSON.parse(fs.readFileSync("./verifiedProxies.txt","utf8"));
+console.log(verifiedProxies);
 let verifiedProxyHosts = verifiedProxies.map((p) => p.host);
 
 //scrape the website, get list of host:ip for proxies
@@ -76,10 +77,17 @@ async function scrapeProxies () {
             }
             return 1;
         });
+        console.log(proxies);
 
         //add verifiedAt to proxies list for verified proxies;
         proxies = proxies.map((p,i,a) => {
-
+            if (verifiedProxiesHosts.includes(p.host)) {
+                const verifiedProxyIndex = verifiedProxyHosts.findIndex(t => t.host === p.host);
+                return {
+                    ...p,
+                    verifiedAt: verifiedProxies[verifiedProxyIndex].verifiedAt,
+                };
+            }
         })
         console.log(proxies);
 

@@ -9,9 +9,9 @@ var currentProxy;
 const proxiesList = getProxiesList();
 
 scrapeProxies();
-rotateProxy();
+setProxy();
 setInterval(scrapeProxies,(60*5*1000));
-setInterval(rotateProxy,(10*1000));
+setInterval(setProxy,(10*1000));
 
 const server = new proxyChain.Server({
     // Port where the server will listen. By default 8000.
@@ -79,7 +79,7 @@ function getProxiesList() {
     proxies = fs.readFileSync("./proxies.txt","utf8");
     return JSON.parse(proxies);
 }
-function rotateProxy() {
+function setProxy() {
     console.log("Rotating proxy.");
     currentProxy = getRandomProxy();
 }
