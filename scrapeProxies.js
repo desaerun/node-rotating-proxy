@@ -92,6 +92,10 @@ async function scrapeProxies () {
                     verifiedAt: verifiedProxies[verifiedProxyIndex].verifiedAt,
                 };
             }
+            return {
+                ...p,
+                verifiedAt: 0,
+            }
         })
         console.log(proxies);
 
