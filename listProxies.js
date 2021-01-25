@@ -1,32 +1,30 @@
 const fs = require("fs");
+const moment = require("moment");
 
-proxiesList = fs.readFileSync("./proxies.txt","utf8");
-verifiedProxiesList = fs.readFileSync("./verifiedProxies.txt","utf8");
+proxiesList = fs.readFileSync("./data/proxies.json","utf8");
 proxies = JSON.parse(proxiesList);
-verifiedProxiesObj = JSON.parse(verifiedProxiesList);
 
 proxyHosts = new Set(proxies.map((p) => p.host));
-verifiedProxyHosts = new Set(verifiedProxiesObj.map ((p) => p.host));
 
-verifiedProxies = [...intersection(proxyHosts,verifiedProxyHosts)];
-
-for (const proxy of proxies) {
-    proxy.verified = verifiedProxies.includes(proxy.host);
-}
 proxies = proxies.sort((a,b) => {
-    if (a.verified === b.verified) {
+    if (a.verifiedAt === b.verifiedAt) {
         return a.ping - b.ping;
+    } else {
+        return b.verifiedAt - a.verifiedAt;
     }
-    if (a.verified) {
-        return -1;
-    }
-    return 1;
 });
 for (const proxy of proxies) {
-    const verifiedStr = (proxy.verified) ? "* " : "";
-    console.log(`${verifiedStr}Host: ${proxy.host}\t| Port: ${proxy.port}\t| Ping: ${proxy.ping}`);
+    let verifiedMark = "";
+    let verifiedDateTimeStr = "";
+    if (proxy.verifiedAt > 0) {
+        verifiedMark = "* ";
+        const verifiedDateTime = moment(proxy.verifiedAt).format("YYYY-MM-DD hh:mm:ssA");
+        verifiedDateTimeStr = `\t| Verified: ${verifiedDateTime}`;
+    }
+
+    console.log(`${verifiedMark}Host: ${proxy.host}\t| Port: ${proxy.port}\t| Ping: ${proxy.ping}${verifiedDateTimeStr}`);
 }
-numVerified = proxies.filter((p) => p.verified).length;
+numVerified = proxies.filter((p) => p.verifiedAt > 0).length;
 console.log(`Proxies count: ${proxies.length} (${numVerified} verified)`);
 
 function intersection(setA,setB) {
