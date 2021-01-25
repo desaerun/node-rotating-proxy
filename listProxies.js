@@ -13,7 +13,7 @@ verifiedProxies = [...intersection(proxyHosts,verifiedProxyHosts)];
 for (const proxy of proxies) {
     proxy.verified = verifiedProxies.includes(proxy.host);
 }
-sortedProxies = proxies.sort((a,b) => {
+proxies = proxies.sort((a,b) => {
     if (a.verified === b.verified) {
         return a.ping - b.ping;
     }
@@ -22,7 +22,7 @@ sortedProxies = proxies.sort((a,b) => {
     }
     return 1;
 });
-for (const proxy of sortedProxies) {
+for (const proxy of proxies) {
     const verifiedStr = (proxy.verified) ? "* " : "";
     console.log(`${verifiedStr}Host: ${proxy.host}\t| Port: ${proxy.port}\t| Ping: ${proxy.ping}`);
 }
