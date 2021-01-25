@@ -82,7 +82,7 @@ async function scrapeProxies () {
         //add verifiedAt to proxies list for verified proxies;
         proxies = proxies.map((p) => {
             if (verifiedProxyHosts.includes(p.host)) {
-                const verifiedProxyIndex = verifiedProxyHosts.findIndex(t => {
+                const verifiedProxyIndex = verifiedProxies.findIndex(t => {
                     console.log(`t: ${t} | p: ${p}`);
                     return t.host === p.host;
                 });
