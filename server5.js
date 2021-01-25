@@ -3,7 +3,10 @@ const fs = require("fs");
 const randomUseragent = require("random-useragent");
 const {scrapeProxies} = require("./scrapeProxies");
 
-const listenPort = 8080;
+const CONFIG = {
+    listenPort: 8080,
+    maxVerifiedFreshness: 5,
+};
 
 var currentProxy;
 var proxiesList;
@@ -18,7 +21,7 @@ setInterval(setProxy,(10*1000));
 
 const server = new proxyChain.Server({
     // Port where the server will listen. By default 8000.
-    port: 8080,
+    port: CONFIG.listenPort,
 
     // Enables verbose logging
     verbose: true,
@@ -88,7 +91,7 @@ function getVerifiedProxiesList() {
 
 function setProxy() {
     console.log("Rotating proxy.");
-    currentProxy = getRandomProxy(800,true,5);
+    currentProxy = getRandomProxy(800,false);
 }
 
 function getRandomProxy(maxPing = 500,requireVerified = false,maxMinutesAgo = 5) {
