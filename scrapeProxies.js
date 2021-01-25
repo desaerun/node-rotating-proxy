@@ -87,11 +87,10 @@ async function scrapeProxies () {
                     return t.host === p.host;
                 });
                 console.log(`index: ${verifiedProxyIndex}`);
-                return p;
-                // return {
-                //     ...p,
-                //     verifiedAt: verifiedProxies[verifiedProxyIndex].verifiedAt,
-                // };
+                return {
+                    ...p,
+                    verifiedAt: verifiedProxies[verifiedProxyIndex].verifiedAt,
+                };
             }
         })
         console.log(proxies);
