@@ -6,9 +6,12 @@ const {scrapeProxies} = require("./scrapeProxies");
 const listenPort = 8080;
 
 var currentProxy;
-const proxiesList = getProxiesList();
+var proxiesList;
+var verifiedProxiesList;
 
 scrapeProxies();
+getProxiesList();
+getVerifiedProxiesList();
 setProxy();
 setInterval(scrapeProxies,(60*5*1000));
 setInterval(setProxy,(10*1000));
@@ -76,23 +79,40 @@ fs.watchFile("./proxies.txt",() => {
 })
 
 function getProxiesList() {
-    proxies = fs.readFileSync("./proxies.txt","utf8");
-    return JSON.parse(proxies);
+    proxiesList = JSON.parse(fs.readFileSync("./proxies.txt","utf8"));
+    return proxiesList;
 }
+function getVerifiedProxiesList() {
+    verifiedProxiesList = proxiesList.filter(p => p.verified !== 0);
+}
+
 function setProxy() {
     console.log("Rotating proxy.");
-    currentProxy = getRandomProxy();
+    currentProxy = getRandomProxy(800,true,5);
 }
-function getRandomProxy(maxPing = 500) {
-    const lowPingProxies = proxiesList.filter((member) => {
-        return member.ping < maxPing;
+
+function getRandomProxy(maxPing = 500,requireVerified = false,maxMinutesAgo = 5) {
+    let validProxies;
+    if (requireVerified) {
+        const maxMsAgo = maxMinutesAgo * 60 * 1000;
+        validProxies = verifiedProxiesList.filter(p => {
+            const verifiedMsAgo = (+Date.now() - p.verifiedAt);
+            return (p.verifiedAt !== 0 && verifiedMsAgo <= maxMsAgo);
+        });
+    } else {
+        validProxies = proxiesList;
+    }
+    const lowPingProxies = validProxies.filter(p => {
+        return p.ping < maxPing;
     });
+
     const randomProxy = getRandomArrayMember(lowPingProxies);
     console.log(`random proxy: ${randomProxy.host}:${randomProxy.port}`);
     return {
         host: randomProxy.host,
         port: randomProxy.port,
         ping: randomProxy.ping,
+        verified: randomProxy.verifiedAt,
     };
 }
 function getRandomUserAgent() {
