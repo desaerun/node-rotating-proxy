@@ -25,7 +25,6 @@ async function main() {
     //start the servers which will catch the request and update the verified proxies list
     const verifyServerPorts = startVerifyServers();
 
-
     const extIp = await getExternalIp();
     console.log(`Got external IP as ${extIp}`);
 

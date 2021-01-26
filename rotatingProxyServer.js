@@ -1,18 +1,17 @@
 const proxyChain = require('proxy-chain');
 const fs = require("fs");
 const randomUseragent = require("random-useragent");
-const {scrapeProxies} = require("./tools/scrapeProxies");
 
 var currentProxy;
-var proxiesList;
+var proxyObjsArr;
 var verifiedProxiesList;
 
-exports.createRotatingProxyServer = function createRotatingProxyServer(listenPort,rotateTimeout, requireVerified,maxVerifiedAgoMinutes) {
-    getProxiesList();
-    getVerifiedProxiesList();
+exports.createRotatingProxyServer = function createRotatingProxyServer(listenPort,rotateTimeoutSeconds, requireVerified,maxVerifiedAgoMinutes) {
+    proxyObjsArr = getKnownProxyObjsArr();
+    getVerifiedProxyObjsArr();
 
     setProxy(requireVerified,maxVerifiedAgoMinutes);
-    setInterval(() => { setProxy(requireVerified,maxVerifiedAgoMinutes); }, (rotateTimeout * 1000));
+    setInterval(() => { setProxy(requireVerified,maxVerifiedAgoMinutes); }, (rotateTimeoutSeconds * 1000));
 
     const server = new proxyChain.Server({
         // Port where the server will listen. By default 8000.
@@ -70,20 +69,26 @@ exports.createRotatingProxyServer = function createRotatingProxyServer(listenPor
     //watch the proxies.json and verifiedProxies.json file for changes, update the arrays if they change.
     fs.watchFile("./data/proxies.json", () => {
         console.log("Proxies file changed, updating proxies list.")
-        getProxiesList();
+        getKnownProxyObjsArr();
     });
     fs.watchFile("./data/verifiedProxies.json", () => {
         console.log("Verified proxies file changed, updating verified proxies list.")
-        getVerifiedProxiesList();
+        getVerifiedProxyObjsArr();
     });
 }
-function getProxiesList() {
-    proxiesList = JSON.parse(fs.readFileSync("./data/proxies.json","utf8"));
-    return proxiesList;
+function getKnownProxyObjsArr() {
+    const read = fs.readFileSync("./data/proxies.json","utf8");
+    console.log(`read: ${read}`);
+    let knownProxyObjsArr = [];
+    try {
+        knownProxyObjsArr = JSON.parse(read);
+    } catch (e) {
+        `Error: ${e}`;
+    }
+    return knownProxyObjsArr;
 }
-function getVerifiedProxiesList() {
-    verifiedProxiesList = proxiesList.filter(p => p.verified !== 0);
-    return verifiedProxiesList;
+function getVerifiedProxyObjsArr() {
+    verifiedProxiesList = proxyObjsArr.filter(p => p.verifiedAt !== 0);
 }
 
 function setProxy(requireVerified,maxVerifiedMinutesAgo) {
@@ -101,23 +106,26 @@ function getRandomProxy(maxPing = 500,requireVerified = false,maxVerifiedMinutes
         });
         if (validProxies.length === 0) {
             console.error("No verified working proxies were found, defaulting to whole list.");
-            validProxies = proxiesList;
+            validProxies = proxyObjsArr;
         }
     } else {
-        validProxies = proxiesList;
+        validProxies = proxyObjsArr;
     }
     const lowPingProxies = validProxies.filter(p => {
         return p.ping < maxPing;
     });
 
     const randomProxy = getRandomArrayMember(lowPingProxies);
-    console.log(`random proxy: ${randomProxy.host}:${randomProxy.port}`);
-    return {
-        host: randomProxy.host,
-        port: randomProxy.port,
-        ping: randomProxy.ping,
-        verified: randomProxy.verifiedAt,
-    };
+    if (randomProxy && randomProxy.host) {
+        console.log(`random proxy: ${randomProxy.host}:${randomProxy.port}`);
+        return {
+            host: randomProxy.host,
+            port: randomProxy.port,
+            ping: randomProxy.ping,
+            verifiedAt: randomProxy.verifiedAt,
+        };
+    }
+    return {};
 }
 function getRandomUserAgent() {
     return randomUseragent.getRandom();

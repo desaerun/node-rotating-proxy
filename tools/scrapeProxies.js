@@ -10,28 +10,41 @@ const tcpPing = util.promisify(tcpp.ping);
 const proxiesFile = "./data/proxies.json";
 const verifiedProxiesFile = "./data/verifiedProxies.json";
 
-let proxyObjsArr = getProxiesFromJson(proxiesFile);
-let verifiedProxies = getProxiesFromJson(verifiedProxiesFile);
-
 //scrape the website, get list of host:ip for proxies
 //discard any we already know about
 exports.scrapeProxies = scrapeProxies;
 
+scrapeProxies();
 async function scrapeProxies () {
-    await importFromProxiesFile("../proxies.txt");
-    await scrapeSslproxiesOrg();
-    await validateProxies();
-    writeProxiesFile(proxiesFile);
+    let knownProxyObjsArr = getProxyObjsArrFromJson(proxiesFile);
+    let verifiedProxyObjsArr = getProxyObjsArrFromJson(verifiedProxiesFile);
+
+    const proxiesFromFile = await importFromProxiesFile("./proxies.txt");
+    const proxiesFromScrape = await scrapeSslproxiesOrg();
+    const proxiesArr = [
+        ...proxiesFromFile,
+        ...proxiesFromScrape,
+    ];
+    const proxyObjsArr = createProxyObjsArr(proxiesArr,verifiedProxyObjsArr);
+    knownProxyObjsArr.concat(proxyObjsArr);
+    const validProxies = await validateProxies(knownProxyObjsArr);
+    writeProxiesFile(validProxies,proxiesFile);
 }
-async function getProxiesFromJson(filename) {
-    return JSON.parse(fs.readFileSync(filename,"utf8"));
+function getProxyObjsArrFromJson(filename) {
+    const proxyObjsArr = JSON.parse(fs.readFileSync(filename,"utf8"));
+    if (Array.isArray(proxyObjsArr)) {
+        return proxyObjsArr;
+    } else {
+        return [];
+    }
 }
 async function importFromProxiesFile(filename) {
     let proxiesFromFile = fs.readFileSync(filename,"utf8").split("\n");
+    console.log(proxiesFromFile);
     let proxyRe = /\b(?:25[0-5]|2[0-4][0-9]|[01]?\d{1,2})\.(?:25[0-5]|2[0-4][0-9]|[01]?\d{1,2})\.(?:25[0-5]|2[0-4][0-9]|[01]?\d{1,2})\.(?:25[0-5]|2[0-4][0-9]|[01]?\d{1,2}):(?:6[0-5][0-5][0-3][0-5]|[1-4]?\d{1,4})\b/
     let proxyRegEx = new RegExp(proxyRe);
     proxiesFromFile = proxiesFromFile.filter(p => proxyRegEx.test(p));
-    await createProxiesObj(proxiesFromFile);
+    return proxiesFromFile;
 }
 async function scrapeSslproxiesOrg () {
     let ip_addresses = [];
@@ -58,11 +71,12 @@ async function scrapeSslproxiesOrg () {
     }
     for (let i = 0; i < ip_addresses.length; i++) {
         let proxy = `${ip_addresses[i]}:${port_numbers[i]}`;
+        console.log(proxy);
         proxiesArr.push(proxy);
     }
-    await createProxiesObj(proxiesArr);
+    return proxiesArr;
 }
-async function createProxiesObj(proxiesArr) {
+function createProxyObjsArr(proxiesArr,verifiedProxies) {
     return proxiesArr.map(p => {
         let [host, port] = p;
 
@@ -104,7 +118,8 @@ async function validateProxies(proxyObjsArr) {
     });
     return proxyObjsArr;
 }
-function writeProxiesFile(filename) {
+function writeProxiesFile(proxyObjsArr,filename) {
+    console.log(`Writing: ${JSON.stringify(proxyObjsArr)} to ${filename}`);
     fs.writeFile(filename, JSON.stringify(proxyObjsArr), (err) => {
         if (err) throw err;
         console.log("Wrote proxies file successfully");
